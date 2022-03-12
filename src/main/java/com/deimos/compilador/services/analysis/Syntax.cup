@@ -1,0 +1,731 @@
+package com.deimos.compilador.services.analysis;
+
+import com.deimos.compilador.model.errors.CompilationError;
+import com.deimos.compilador.model.errors.ErrorType;
+import com.deimos.compilador.services.ErrorHandlerService;
+import com.deimos.compilador.model.errors.statement.Statement;
+import com.deimos.compilador.services.StatementHandlerService;
+import java_cup.runtime.Symbol;
+import java.util.List;
+
+parser code
+{:
+    private Symbol s;
+    
+    public void syntax_error(Symbol s){
+        this.s = s;
+    }
+
+    public Symbol getS(){
+        return this.s;
+    }
+:}
+
+action code {:
+
+private void syntaxError(String id, int line, String message){
+    List<CompilationError> errors = ErrorHandlerService.compilationErrors.getErrors();
+    CompilationError syntaxError = new CompilationError(id, message, ErrorType.SYNTAX, line);
+    errors.add(syntaxError);
+}
+
+private void semanticError(String id, int line, String message){
+    List<CompilationError> errors = ErrorHandlerService.compilationErrors.getErrors();
+    CompilationError semanticError = new CompilationError(id, message, ErrorType.SEMANTIC, line);
+    errors.add(semanticError);
+}
+
+private void validateDeclaration(String id, String value,  int linea){
+    VariableHandler.validate(id, value, linea);
+}
+
+
+private void validateId(String id, int linea){
+    VariableHandler.validateId(id, linea);
+}
+
+private static final String BAD_TYPE_ERROR_CODE = "021";
+
+private static final String NOT_A_STATEMENT_ERROR_CODE = "003";
+private static final String NOT_A_DECLARATION_ERROR_CODE = "004";
+private static final String EXPECTED_SEMI_COLON_ERROR_CODE = "005";
+private static final String MISSING_CLOSING_BRACKET_ERROR_CODE = "006";
+private static final String MAIN_PROGRAM_EXPECTED_ERROR_CODE = "007";
+private static final String INIT_FUNCTION_EXPECTED_ERROR_CODE = "008";
+private static final String ITERATE_FUNCTION_EXPECTED_ERROR_CODE = "008";
+private static final String EXPECTED_IDENTIFIER_ERROR_CODE = "009";
+private static final String EXPECTED_PROGRAM_KEYWORD_ERROR_CODE = "010";
+private static final String VALUE_EXPECTED_ERROR_CODE = "011";
+private static final String FUNCTION_BODY_ERROR_CODE = "012";
+private static final String NOT_A_FUNCTION_ERROR_CODE = "013";
+private static final String PROGRAM_BODY_ERROR_CODE = "014";
+private static final String BLOCK_ERROR_ERROR_CODE = "015";
+private static final String FUNCTION_BODY_TWO_ARGS_ERROR_CODE = "016";
+private static final String IF_COND_EXPECTED_ERROR_CODE = "017";
+private static final String IF_BAD_SYNTAX_ERROR_CODE = "018";
+
+private static final String NOT_A_STATEMENT_MESSAGE = "Not a statement";
+private static final String NOT_A_DECLARATION_MESSAGE = "Not a declaration";
+private static final String EXPECTED_SEMI_COLON_MESSAGE = "<;> Expected";
+private static final String MISSING_CLOSING_BRACKET_MESSAGE = "<}> Expected";
+private static final String MAIN_PROGRAM_EXPECTED_MESSAGE = "<program { ... }> main program Expected";
+private static final String INIT_FUNCTION_EXPECTED_MESSAGE = "<init> Function Expected";
+private static final String ITERATE_FUNCTION_EXPECTED_MESSAGE = "<iterate> Function Expected";
+private static final String EXPECTED_IDENTIFIER_MESSAGE = "<identifier> Expected";
+private static final String EXPECTED_PROGRAM_KEYWORD_MESSAGE = "<program> Keyword Expected";
+private static final String VALUE_EXPECTED_MESSAGE = "Bad syntax <value> Expected";
+private static final String FUNCTION_BODY_MESSAGE = "Bad syntax < (value) > Expected";
+private static final String NOT_A_FUNCTION_MESSAGE = "Bad syntax < function_name() > Expected";
+private static final String PROGRAM_BODY_ERROR_MESSAGE = "Bad syntax < program id { ... } > Expected";
+private static final String BLOCK_ERROR_MESSAGE = "Bad syntax < { ... } > Block Expected";
+private static final String FUNCTION_BODY_TWO_ARGS_ERROR_MESSAGE = "Bad syntax < (value, value) > Expected";
+private static final String IF_COND_EXPECTED_ERROR_MESSAGE = "Bad syntax < ( bool expr ) > Expected";
+private static final String IF_BAD_SYNTAX_ERROR_MESSAGE = "Bad syntax < if ( bool expr ) { ... } > Expected";
+
+:}
+
+terminal
+    ABSTRACT, 
+    BOOLEAN,
+    BREAK, 
+    PROGRAM,
+
+    INIT,
+    ITERATE,
+    IF,
+    ELSE,
+    FOR, 
+    WHILE,
+
+    INT,
+    STRING, 
+    FLOAT,
+
+    START,
+    WAIT,
+    PRINT,
+    MODE,
+    A_READ,
+    A_WRITE,
+    D_READ,
+    D_WRITE,
+    
+    IDENTIFIER,
+    PIN,
+    INTEGER_LITERAL,
+    STRING_LITERAL,
+
+    ADDITION, 
+    SUBTRACTION, 
+    MULTIPLICATION,
+
+    DIVISION, 
+    MODULUS, 
+    INCREMENT,
+    DECREMENT, 
+    ASSIGNMENT, 
+    ASSIGNMENT_ADDITION,
+    ASSIGNMENT_SUBTRACTION, 
+    ASSIGNMENT_MULTIPLICATION, 
+    ASSIGNMENT_DIVISION,
+    ASSIGNMENT_MODULUS, 
+    EQUAL_TO, 
+    NOT_EQUAL,
+    GREATER_THAN, 
+    LESS_THAN, 
+    GREATHER_THAN_OR_EQUAL_TO,
+    LESS_THAN_OR_EQUAL_TO,
+
+    AND,
+    OR,
+
+    SEMI,
+    LBRACKET,
+    RBRACKET,
+    LPAR,
+    RPAR,
+
+    INVALID_NUMBER,
+    COMA,
+    ERROR
+;
+
+non terminal
+
+/* ---------------------------- main ---------------------------- */
+
+    mainProgram,
+    mainProgramError,
+    mainProgramSignature,
+    mainProgramSignatureError,
+
+    mainBlock,
+    mainBlockError,
+
+    mainStmtList,
+    mainStmtListError,
+
+    mainStmtList1,
+    mainStmtList1Error,
+    mainStmtList2,
+    mainStmtList2Error,
+    mainStmtListGd,
+
+    mainInit,
+    mainInitSignature,
+    mainInitSignatureError,
+
+    mainIteration,
+    mainIterationSignature,
+    mainIterationSignatureError,
+
+    globalDeclarationList,
+    globalDeclaration,
+    globalDeclarationError,
+
+/* ---------------------------- stmts ---------------------------- */
+
+    declaration,
+    declarationType,
+
+    assignment,
+    assignmentError,
+    assignmentType,
+
+    function,
+
+    oneArgfunction,
+    oneArgfunctiontype,
+    oneArgfunctionBody,
+    oneArgfunctionBodyError,
+
+    twoArgsfunction,
+    twoArgsfunctiontype,
+    twoArgsfunctionBody,
+    twoArgsfunctionBodyError,
+
+    returnFunction,
+    returnFunctionType,
+    returnFunctionBody,
+
+    if_statement,
+    if_statementSignature,
+    if_statementCond,
+    if_statementCondError,
+
+/* ---------------------------- elements ---------------------------- */
+
+    block,
+    
+    stmtList,
+    stmt,
+    stmtError,
+
+    condList,
+    cond,
+    expr,
+
+    value
+;
+
+/* Precedences */
+precedence left ADDITION, SUBTRACTION;
+precedence left MULTIPLICATION, DIVISION, MODULUS;
+
+start with mainProgram;
+
+/* ---------------------------- main ---------------------------- */
+
+/* ---- mainProgram ---- */
+
+mainProgram ::=
+        mainProgramSignature mainBlock
+    |   mainProgramError
+;
+
+mainProgramError ::=
+        error:e
+            {: syntaxError(MAIN_PROGRAM_EXPECTED_ERROR_CODE, eleft+1, MAIN_PROGRAM_EXPECTED_MESSAGE); :}
+;
+
+/* -- */
+
+mainProgramSignature ::=
+        PROGRAM IDENTIFIER
+    |   mainProgramSignatureError
+;
+
+mainProgramSignatureError ::=
+        PROGRAM:e
+            {: syntaxError(EXPECTED_IDENTIFIER_ERROR_CODE, eleft+1, EXPECTED_IDENTIFIER_MESSAGE); :}
+    |   IDENTIFIER:e
+            {: syntaxError(EXPECTED_PROGRAM_KEYWORD_ERROR_CODE, eleft+1, EXPECTED_PROGRAM_KEYWORD_MESSAGE); :}
+;
+
+/* ---- mainBlock ---- */
+
+mainBlock ::= 
+        LBRACKET mainStmtList
+    |   mainBlockError      
+;
+
+mainBlockError ::=
+        mainStmtList:e
+            {: syntaxError(BLOCK_ERROR_ERROR_CODE, eleft+1, BLOCK_ERROR_MESSAGE); :}    
+;
+
+/* ---- mainStmtList ---- */
+
+mainStmtList ::=
+        mainStmtListGd mainInit mainStmtListGd mainStmtList1
+    |   mainStmtListGd mainIteration mainStmtListGd mainStmtList2
+    |   mainStmtListError         
+;
+
+mainStmtListError ::=
+        mainStmtListGd mainInit:e mainStmtListGd RBRACKET
+                {: syntaxError(ITERATE_FUNCTION_EXPECTED_ERROR_CODE, eleft+1, ITERATE_FUNCTION_EXPECTED_MESSAGE); :}
+    |   mainStmtListGd mainIteration:e mainStmtListGd RBRACKET
+                {: syntaxError(INIT_FUNCTION_EXPECTED_ERROR_CODE, eleft+1, INIT_FUNCTION_EXPECTED_MESSAGE); :}
+    |   mainStmtListGd:e RBRACKET
+                {: syntaxError(INIT_FUNCTION_EXPECTED_ERROR_CODE, eleft+1, INIT_FUNCTION_EXPECTED_MESSAGE);
+                   syntaxError(ITERATE_FUNCTION_EXPECTED_ERROR_CODE, eleft+1, ITERATE_FUNCTION_EXPECTED_MESSAGE); :}
+    |   mainStmtListGd mainInit mainStmtListGd:e
+                {: syntaxError(ITERATE_FUNCTION_EXPECTED_ERROR_CODE, eleft+1, ITERATE_FUNCTION_EXPECTED_MESSAGE);
+                   syntaxError(MISSING_CLOSING_BRACKET_ERROR_CODE, eleft+1, MISSING_CLOSING_BRACKET_MESSAGE); :}    
+    |   mainStmtListGd mainIteration mainStmtListGd:e 
+                {: syntaxError(INIT_FUNCTION_EXPECTED_ERROR_CODE, eleft+1, INIT_FUNCTION_EXPECTED_MESSAGE);
+                   syntaxError(MISSING_CLOSING_BRACKET_ERROR_CODE, eleft+1, MISSING_CLOSING_BRACKET_MESSAGE); :}    
+    |   mainStmtListGd:e
+                {: syntaxError(INIT_FUNCTION_EXPECTED_ERROR_CODE, eleft+1, INIT_FUNCTION_EXPECTED_MESSAGE);
+                   syntaxError(ITERATE_FUNCTION_EXPECTED_ERROR_CODE, eleft+1, ITERATE_FUNCTION_EXPECTED_MESSAGE);
+                   syntaxError(MISSING_CLOSING_BRACKET_ERROR_CODE, eleft+1, MISSING_CLOSING_BRACKET_MESSAGE); :}                     
+;
+
+/* -- */
+
+mainStmtList1::=
+        mainIteration mainStmtListGd RBRACKET
+    |   mainStmtList1Error
+;
+
+mainStmtList1Error ::=
+        mainIteration mainStmtListGd:e
+                {: syntaxError(MISSING_CLOSING_BRACKET_ERROR_CODE, eleft+1, MISSING_CLOSING_BRACKET_MESSAGE); :}    
+;
+
+/* -- */
+
+mainStmtList2::=
+        mainInit mainStmtListGd RBRACKET
+    |   mainStmtList2Error
+;
+
+mainStmtList2Error ::=
+        mainInit mainStmtListGd:e
+                {: syntaxError(MISSING_CLOSING_BRACKET_ERROR_CODE, eleft+1, MISSING_CLOSING_BRACKET_MESSAGE); :}    
+;
+
+/* -- */
+
+mainStmtListGd ::=
+        globalDeclarationList
+    |   /* Empty */
+;
+
+/* ---- mainInit ---- */
+
+mainInit  ::=
+        mainInitSignature block/*
+    |   mainInitError        */
+;
+/*
+mainInitError ::=
+        mainInitSignature:e
+            {: syntaxError(BLOCK_ERROR_ERROR_CODE, eleft+1, BLOCK_ERROR_MESSAGE); :}
+;*/
+
+/* -- */
+
+mainInitSignature ::=
+        INIT LPAR RPAR
+    |   mainInitSignatureError
+;
+
+mainInitSignatureError ::=
+        INIT:e LPAR
+            {: syntaxError(NOT_A_FUNCTION_ERROR_CODE, eleft+1, NOT_A_FUNCTION_MESSAGE); :}
+    |   INIT:e RPAR
+            {: syntaxError(NOT_A_FUNCTION_ERROR_CODE, eleft+1, NOT_A_FUNCTION_MESSAGE); :}    
+    |   INIT:e    
+            {: syntaxError(NOT_A_FUNCTION_ERROR_CODE, eleft+1, NOT_A_FUNCTION_MESSAGE); :}    
+;
+
+/* ---- mainIteration ---- */
+
+mainIteration  ::=
+        mainIterationSignature block/*
+    |   mainIterationError*/        
+;
+
+/*
+mainIterationError ::=
+        mainIterationSignature:e
+            {: syntaxError(BLOCK_ERROR_ERROR_CODE, eleft+1, BLOCK_ERROR_MESSAGE); :}
+;
+/*
+
+/* -- */
+
+mainIterationSignature ::=
+        ITERATE LPAR RPAR
+    |   mainIterationSignatureError
+;
+
+mainIterationSignatureError ::=
+        ITERATE:e LPAR
+            {: syntaxError(NOT_A_FUNCTION_ERROR_CODE, eleft+1, NOT_A_FUNCTION_MESSAGE); :}
+    |   ITERATE:e RPAR
+            {: syntaxError(NOT_A_FUNCTION_ERROR_CODE, eleft+1, NOT_A_FUNCTION_MESSAGE); :}    
+    |   ITERATE:e    
+            {: syntaxError(NOT_A_FUNCTION_ERROR_CODE, eleft+1, NOT_A_FUNCTION_MESSAGE); :}    
+;
+
+/* ---- globalDeclaration ---- */
+
+globalDeclarationList ::=
+        globalDeclaration globalDeclarationList
+    |   globalDeclaration
+;
+
+/* -- */
+
+globalDeclaration ::=
+        declaration SEMI
+    |   globalDeclarationError
+;
+
+globalDeclarationError ::=
+        declaration:e    
+            {: syntaxError(EXPECTED_SEMI_COLON_ERROR_CODE, eleft+1, EXPECTED_SEMI_COLON_MESSAGE); :}
+    |   error:e
+            {: syntaxError(NOT_A_DECLARATION_ERROR_CODE, eleft+1, NOT_A_DECLARATION_MESSAGE); :}      
+;
+
+/* ---------------------------- stmts ---------------------------- */
+
+/* ---- declaration ---- */
+
+declaration ::=
+        INT:type IDENTIFIER:id ASSIGNMENT INTEGER_LITERAL:val
+        {:
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+        :}
+    |   STRING:type IDENTIFIER:id ASSIGNMENT INTEGER_LITERAL:val
+        {:
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+          semanticError(BAD_TYPE_ERROR_CODE, idleft+1, "Bad types, string " + "cannot be converted to " + " int");    
+        :}
+    |   FLOAT:type IDENTIFIER:id ASSIGNMENT INTEGER_LITERAL:val
+        {:
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+        :}
+    |   INT:type IDENTIFIER:id ASSIGNMENT STRING_LITERAL:val
+        {:
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+          semanticError(BAD_TYPE_ERROR_CODE, idleft+1, "Bad types, int " + "cannot be converted to " + " string");    
+        :}
+    |   STRING:type IDENTIFIER:id ASSIGNMENT STRING_LITERAL:val
+        {:
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+        :}
+    |   FLOAT:type IDENTIFIER:id ASSIGNMENT STRING_LITERAL:val
+        {:
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+        :}
+    |   INT:type D_READ:id ASSIGNMENT INTEGER_LITERAL:val
+        {:
+          semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+        :}
+    |   STRING:type A_READ:id ASSIGNMENT INTEGER_LITERAL:val
+        {:
+          semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+          semanticError(BAD_TYPE_ERROR_CODE, idleft+1, "Bad types, string " + "cannot be converted to " + " int");    
+        :}
+    |   FLOAT:type PROGRAM:id ASSIGNMENT INTEGER_LITERAL:val
+        {:
+          semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+        :}
+    |   INT:type PROGRAM:id ASSIGNMENT STRING_LITERAL:val
+        {:
+          semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+          semanticError(BAD_TYPE_ERROR_CODE, idleft+1, "Bad types, int " + "cannot be converted to " + " string");    
+        :}
+    |   STRING:type A_READ:id ASSIGNMENT STRING_LITERAL:val
+        {:
+          semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+        :}
+    |   FLOAT:type PROGRAM:id ASSIGNMENT STRING_LITERAL:val
+        {:
+          semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+          validateDeclaration(id.toString(), val.toString(), idleft+1);
+        :}
+;
+
+/*
+
+declarationType ::=
+        INT
+    |   STRING
+    |   FLOAT
+;
+
+*/
+
+/* ---- assignment ---- */
+
+assignment ::=
+        IDENTIFIER:id ASSIGNMENT INTEGER_LITERAL:val
+            {: validateId(id.toString(), idleft+1); :}
+    |   IDENTIFIER:id ASSIGNMENT STRING_LITERAL:val
+            {: validateId(id.toString(), idleft+1); :}
+    |   IDENTIFIER:id assignmentType expr
+            {: validateId(id.toString(), idleft+1); :}
+    |   PROGRAM:id ASSIGNMENT INTEGER_LITERAL:val
+            {:  semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   PROGRAM:id ASSIGNMENT STRING_LITERAL:val
+            {: semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   PROGRAM:id assignmentType expr
+            {: semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   A_READ:id ASSIGNMENT INTEGER_LITERAL:val
+            {:  semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   A_READ:id ASSIGNMENT STRING_LITERAL:val
+            {: semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   A_READ:id assignmentType expr
+            {: semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   D_READ:id ASSIGNMENT INTEGER_LITERAL:val
+            {:  semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   D_READ:id ASSIGNMENT STRING_LITERAL:val
+            {: semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   D_READ:id assignmentType expr
+            {: semanticError("025", idleft+1, "A reserved word cannot be used as an identifier");   
+                validateId(id.toString(), idleft+1); :}
+    |   assignmentError
+;
+
+
+assignmentError ::= 
+    assignmentType:e
+            {: syntaxError(EXPECTED_IDENTIFIER_ERROR_CODE, eleft+1, EXPECTED_IDENTIFIER_MESSAGE);
+               syntaxError(VALUE_EXPECTED_ERROR_CODE, eleft+1, VALUE_EXPECTED_MESSAGE); :}    
+;
+
+/* -- */
+
+assignmentType ::=
+        ASSIGNMENT
+    |   ASSIGNMENT_ADDITION
+    |   ASSIGNMENT_SUBTRACTION
+    |   ASSIGNMENT_MULTIPLICATION
+    |   ASSIGNMENT_DIVISION
+    |   ASSIGNMENT_MODULUS
+;
+
+/* ---- funciones ---- */
+
+function ::=
+        oneArgfunction
+    |   twoArgsfunction
+;
+
+/* -- */
+
+oneArgfunction ::=
+    oneArgfunctiontype oneArgfunctionBody
+;
+
+oneArgfunctiontype ::=
+        START
+    |   WAIT
+    |   PRINT
+;
+
+oneArgfunctionBody ::=
+        LPAR INTEGER_LITERAL RPAR
+    |   LPAR STRING_LITERAL RPAR
+    |   LPAR IDENTIFIER:id RPAR
+        {: validateId(id.toString(), idleft+1); :}
+    |   oneArgfunctionBodyError 
+
+;
+
+oneArgfunctionBodyError ::=
+    error:e
+        {: semanticError("023", eleft+1, "Bad number of parameters, only one parameter is expected");     
+           // syntaxError(FUNCTION_BODY_ERROR_CODE, eleft+1, FUNCTION_BODY_MESSAGE); :}  
+;
+
+/* -- */
+
+twoArgsfunction ::=
+    twoArgsfunctiontype twoArgsfunctionBody
+;
+
+twoArgsfunctiontype ::=
+        MODE
+    |   A_WRITE
+    |   D_WRITE
+;
+
+twoArgsfunctionBody ::=
+        LPAR expr COMA expr RPAR
+    |   twoArgsfunctionBodyError
+        
+;
+
+twoArgsfunctionBodyError ::=
+    error:e
+        {: semanticError("022", eleft+1, "Bad number of parameters, only two parameters are expected");   
+           // syntaxError(FUNCTION_BODY_TWO_ARGS_ERROR_CODE, eleft+1, FUNCTION_BODY_TWO_ARGS_ERROR_MESSAGE); :}  
+;
+
+/* -- */
+
+returnFunction ::=
+    returnFunctionType returnFunctionBody
+;
+
+returnFunctionType ::=
+        A_READ
+    |   D_READ
+;
+
+returnFunctionBody ::=
+    oneArgfunctionBody
+;
+
+/* ---- if_statement ---- */
+
+if_statement ::=
+    if_statementSignature block 
+;
+
+/* -- */
+
+if_statementSignature ::=
+        IF if_statementCond
+;
+
+if_statementCond ::=
+        LPAR condList RPAR
+    |   if_statementCondError 
+;
+
+if_statementCondError ::=
+        LPAR:e RPAR
+            {: syntaxError(IF_COND_EXPECTED_ERROR_CODE, eleft+1, IF_COND_EXPECTED_ERROR_MESSAGE); :}  
+    |   error:e
+            {: syntaxError(IF_BAD_SYNTAX_ERROR_CODE, eleft+1, IF_BAD_SYNTAX_ERROR_MESSAGE); :}   
+;
+
+/* -- */
+
+if_statementCond ::=
+;
+
+/* ---------------------------- elements ---------------------------- */
+
+block ::=
+        LBRACKET stmtList RBRACKET/*
+    |   LBRACKET stmtList*/ // TODO: Arreglar para que se pueda poner sin RBRACKET y registrar el error
+;
+
+/* -- */
+
+stmtList ::=
+        stmtList stmt
+    |   /* empty */
+;
+
+/* -- */
+
+stmt ::=
+        declaration SEMI
+    |   assignment SEMI
+    |   function SEMI
+    |   if_statement
+    |   stmtError
+;
+
+stmtError ::=
+        declaration:e
+            {: syntaxError(EXPECTED_SEMI_COLON_ERROR_CODE, eleft+1, EXPECTED_SEMI_COLON_MESSAGE); :} 
+    |   assignment:e
+            {: syntaxError(EXPECTED_SEMI_COLON_ERROR_CODE, eleft+1, EXPECTED_SEMI_COLON_MESSAGE); :}   
+    |   function:e
+            {: syntaxError(EXPECTED_SEMI_COLON_ERROR_CODE, eleft+1, EXPECTED_SEMI_COLON_MESSAGE); :}      
+    |   error:e
+            {: syntaxError(NOT_A_STATEMENT_ERROR_CODE, eleft+1, NOT_A_STATEMENT_MESSAGE); :}          
+;
+
+/* -- */
+
+condList ::=
+        cond OR condList
+    |   cond AND condList
+    |   cond
+;
+
+cond ::=
+        expr EQUAL_TO expr        
+    |   expr NOT_EQUAL expr        
+    |   expr GREATER_THAN expr
+    |   expr LESS_THAN expr
+    |   expr GREATHER_THAN_OR_EQUAL_TO expr
+    |   expr LESS_THAN_OR_EQUAL_TO expr
+    |   LPAR expr RPAR 
+    
+    |   expr EQUAL_TO INTEGER_LITERAL        
+    |   expr NOT_EQUAL INTEGER_LITERAL        
+    |   expr GREATER_THAN INTEGER_LITERAL
+    |   expr LESS_THAN INTEGER_LITERAL
+    |   expr GREATHER_THAN_OR_EQUAL_TO INTEGER_LITERAL
+    |   expr LESS_THAN_OR_EQUAL_TO INTEGER_LITERAL
+    |   LPAR INTEGER_LITERAL RPAR                    
+;
+
+/* -- */
+
+expr ::= 
+        expr ADDITION expr        
+    |   expr SUBTRACTION expr        
+    |   expr MULTIPLICATION expr
+    |   expr DIVISION expr
+    |   expr MODULUS expr
+    |   SUBTRACTION expr
+  	        %prec SUBTRACTION       
+    |   LPAR expr RPAR	         
+    |   value	                     
+;
+
+/* -- */
+
+value ::=
+        IDENTIFIER:id
+        {: validateId(id.toString(), idleft+1); :} 
+    |   PIN
+    |   returnFunction
+;
